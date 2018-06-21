@@ -1,0 +1,52 @@
+version: '2'
+services:
+  # MongoDB: https://hub.docker.com/_/mongo/
+  
+  mongo:
+    image: mongo:3
+    volumes:
+      - ./db:/data/db
+  
+  elasticsearch:
+    image: elasticsearch:5.6.10
+    environment:
+      - http.host=0.0.0.0
+      # Disable X-Pack security: https://www.elastic.co/guide/en/elasticsearch/reference/5.5/security-settings.html#general-security-settings
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1g
+    volumes: 
+      - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./elasticsearch/data:/var/lib/elasticsearch
+      - ./elasticsearch/logs:/var/log/elasticsearch
+
+  graylog:
+    image: graylog/graylog:2.4.5-1
+    environment:
+      - GRAYLOG_PASSWORD_SECRET=nZW9LrkEPM6EOC0odFf6jKX3yYEwnz4k4MCQ
+      - GRAYLOG_ROOT_PASSWORD_SHA2=afc33550b28ee5bfe4109a8e58456e73bff8248ac9f53e453cfc69928763b542
+      - GRAYLOG_ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - GRAYLOG_REST_LISTEN_URI=http://0.0.0.0:9000/api/
+      - GRAYLOG_WEB_LISTEN_URI=http://0.0.0.0:9000/
+      - GRAYLOG_WEB_ENDPOINT_URI=http://171.244.30.209:9000/api/
+      #- GRAYLOY_bin_dir=/home/graylog/bin 
+      #- GRAYLOG_data_dir=/home/graylog/data 
+      #- GRAYLOG_plugin_dir=/home/graylog/data
+    links:
+      - mongo
+      - elasticsearch
+    ports:
+      # Graylog web interface and REST API
+      - 9000:9000
+      # Syslog TCP
+      - 514:514
+      # Syslog UDP
+      - 514:514/udp
+      # GELF TCP
+      - 12201:12201
+      # GELF UDP
+      - 12201:12201/udp
